@@ -74,12 +74,18 @@ Vagrant.configure("2") do |config|
 
             # Provisionamento do nó
             k8s.vm.provision "shell", inline: <<-SHELL
+                # Executar o comando de Join para juntar os nodes no Control-Plane
+                chmod +x /vagrant/code/join.sh
+                /vagrant/code/join.sh
 
-            # Executar o comando de Join para juntar os nodes no Control-Plane
-            chmod +x /vagrant/code/join.sh
-            /vagrant/code/join.sh
+                # Alterar configurações do kubelet para pegar o IP do node, e não o IP padrão
+                ## arquivo de configuração do kubelet: /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf
+                sudo su
+                sed -i 's@Environment="KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml"@Environment="KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml --node-ip=192.168.1.2#{i}"@g' /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf
+                systemctl daemon-reload
+                systemctl restart kubelet
 
-            echo "Nó k8s-node0#{i} inicializado e pronto para usar...."
+                echo "Nó k8s-node0#{i} inicializado e pronto para usar...."
             SHELL
 
 
